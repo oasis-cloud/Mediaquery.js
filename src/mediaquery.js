@@ -4,6 +4,7 @@ var gcMediaQuery = {},
 	headEle = document.querySelector('head'),
 	styleNode = document.createElement('style'),
 	querys = [],
+	beforeQuery = [],
 
 	styleNode.type = 'text/css';
 
@@ -38,6 +39,9 @@ function removeSingleQuery(condition){
 }
 
 //检查是否符合出发条件（媒体查询的条件）
+//需要遍历所有的querys，自动找出符合条件的。
+//组织好上次符合条件的记录，为了匹配unmatch事件时使用
+//此方法需要改造。
 function isMatch(query){
 	if(!query) return false;
 	if(window.mediaMatch) {
