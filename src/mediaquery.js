@@ -3,8 +3,6 @@ var gcMediaQuery = {},
 	bodyEle = document.querySelector('body'),
 	headEle = document.querySelector('head'),
 	styleNode = document.createElement('style'),
-	until = {},
-	token = null，
 	querys = [],
 
 	styleNode.type = 'text/css';
@@ -74,7 +72,7 @@ gcMediaQuery.trigger ＝ function(condition){
 }
 //给window添加事件，获取相关媒体查询信息，触发绑定事件
 function resizeHandle(evt){
-	
+
 }
 window.addEventListener('resize', resizeHandle,false);
 
