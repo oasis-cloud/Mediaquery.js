@@ -68,9 +68,20 @@ gcMediaQuery.getMatch = function(token){
 	for(i in RELATION) {
 		query = RELATION[i].query;
 		if(!query) continue;
-		gcMediaQuery.allMatchs = {'tp':'','condition':query};
+		gcMediaQuery.allMatchs = {'tp':'','query':query};
+		//当匹配，match触发
 		if(gcMediaQuery.isMatch(query) && RELATION[i].tp == 'match'){
 			gcMediaQuery.allMatchs = RELATION[i];
+		}
+		//当不匹配，unmatch触发
+		if(!gcMediaQuery.isMatch(query) && RELATION[i].tp == 'unmatch'){
+			gcMediaQuery.allMatchs.tp = 'unmatch';
+			gcMediaQuery.allMatchs.query = query;
+		}
+		//当匹配，并且之前触发了unmatch，则转化为match触发
+		if(gcMediaQuery.isMatch(query) && RELATION[i].tp == 'unmatch'){
+			gcMediaQuery.allMatchs.tp = 'match';
+			gcMediaQuery.allMatchs.query = query;
 		}
 	}
 }
@@ -80,9 +91,9 @@ gcMediaQuery.match = function(condition, callback){
 	gcMediaQuery.addEvt('match', condition, callback);
 }
 
-// gcMediaQuery.unmatch = function(condition, callback){
-// 	gcMediaQuery.addEvt('unmatch', condition, callback);
-// }
+gcMediaQuery.unmatch = function(condition, callback){
+	gcMediaQuery.addEvt('unmatch', condition, callback);
+}
 
 //支持多个条件移除同一事件
 gcMediaQuery.offmatch = function(condition, callback){
@@ -124,11 +135,17 @@ gcMediaQuery.removeEvt = function(tp, condition, callback){
 //根据媒体查询条件触发绑定事件
 gcMediaQuery.trigger = function(param){
 	var token = null;
-
-	if(param.tp !== '') {
+	//匹配则生成对应的token，之后调用回调用
+	console.log(gcMediaQuery.allMatchs)
+	console.log(param.tp)
+	if(param.tp !== '' && param.tp == 'match') {
+		token = escape(param.tp + param.query).replace(/[%|-]+/g, '');
+		console.log(token)
+	}
+	if(param.tp !== '' && param.tp == 'unmatch') {
 		token = escape(param.tp + param.query).replace(/[%|-]+/g, '');	
 	}
-
+	//
 	if(gcMediaQuery.callbacks[token] && isfun(gcMediaQuery.callbacks[token].callback)){
 		gcMediaQuery.callbacks[token].callback.call(null);
 		return;
