@@ -3,16 +3,15 @@ var gcMediaQuery = {},
 	bodyEle = document.querySelector('body'),
 	headEle = document.querySelector('head'),
 	styleNode = document.createElement('style'),
-	querys = [],
-	RELATION = [],
-	BEFORE = {'tp':'match', 'condition':''};
+	querys = [],//用于组织没提查询
+	RELATION = {};//条件关系
 
 	styleNode.type = 'text/css';
 
 
 function addStyleElement(query){
 	styleNode.innerText = makeStyleText(query);
-	bodyEle.appendChild(styleNode);
+	headEle.appendChild(styleNode);
 }
 //组织stye元素的监测字符串
 //@media screen and (min-width:500px){body:before{content:"(min-width:500px)",display:none;}}
@@ -20,16 +19,18 @@ function makeStyleText(query){
 	//匹配条件，然后组织,需要防止重复
 	if(!query) return '';
 	var singleQuery = makeSingleQuery(query);
+
 	//查询是否已经存在，不存在则插入
-	if(querys.indexOf(singleQuery) !== -1){
+	if(querys.indexOf(singleQuery) == -1){
 		querys.push(singleQuery);
 	}
-	return querys.join('\r\n');
+	
+	return 'body:before{content:"normal",display:none;}' + querys.join('\r\n');
 }
 //生成单条媒体查询语句
 function makeSingleQuery(query){
 	if(!query) return '';
-	return "@media screen and (min-width:500px){body:before{content:\"("+query+")\",display:none;}}"
+	return "@media screen and (min-width:500px){body:before{content:\""+query+"\";display:none;}}"
 }
 
 function removeSingleQuery(condition){
@@ -61,14 +62,17 @@ gcMediaQuery.isMatch = function(query){
 //检查是否符合出发条件（媒体查询的条件）
 
 gcMediaQuery.getMatch = function(){
-	var i = 0, len = RELATION.length, query = null;
-	for(;i < len; i++){
+	var i, len = RELATION.length, query = null;
+	for(i in RELATION){
 		query = RELATION[i].query;
 		if(!query) continue;
 		if(gcMediaQuery.isMatch(query)){
 			gcMediaQuery.allMatchs = RELATION[i];
+		} else {
+			gcMediaQuery.allMatchs = {'tp' : 'unmatch', 'query' : RELATION[i].query};
 		}
 	}
+	console.log(gcMediaQuery.allMatchs)
 }
 
 //支持多个条件添加同一事件
@@ -91,14 +95,15 @@ gcMediaQuery.offunmatch = function(condition, callback){
 
 gcMediaQuery.addEvt = function(tp, condition, callback){
 	var token = null;
+	token = escape(tp + condition).replace(/[%|-]+/g, '');
 	//保存条件关系
-	RELATION.push({'tp':tp, 'query':condition});
+	RELATION[token] = {'tp':tp, 'query':condition};
 	//插入样式
 	if(tp != 'unmatch'){
 		addStyleElement(condition);
 	}
 	//添加到观察者列表中
-	token = escape(tp + condition).replace(/[%|-]+/g, '');
+	
 	gcMediaQuery.callbacks[token] = {'content' : condition, 'type' : tp, 'callback' : callback};
 	//
 	resizeHandle();
@@ -118,27 +123,23 @@ gcMediaQuery.removeEvt = function(tp, condition, callback){
 }
 //根据媒体查询条件触发绑定事件
 gcMediaQuery.trigger = function(tp, condition){
-	console.log("gcMediaQuery.callbacks")
-	console.log(gcMediaQuery.callbacks)
-	console.log('-------------------------------------------')
-	console.log("BEFORE")
-	console.log(BEFORE)
 
 	var token = null;
 	token = escape(tp + condition).replace(/[%|-]+/g, '');
-
 	
-	if(isfun(gcMediaQuery.callbacks[token].callback)){
+	if(gcMediaQuery.callbacks[token] && isfun(gcMediaQuery.callbacks[token].callback)){
 		gcMediaQuery.callbacks[token].callback.call(null);
+		return;
 	}
 
 }
 //给window添加事件，获取相关媒体查询信息，触发绑定事件
 function resizeHandle(){
+	
 	gcMediaQuery.getMatch();
 	gcMediaQuery.trigger(gcMediaQuery.allMatchs.tp, gcMediaQuery.allMatchs.query);
 }
-//window.addEventListener('resize', resizeHandle,false);
+window.addEventListener('resize', resizeHandle,false);
 
 
 
