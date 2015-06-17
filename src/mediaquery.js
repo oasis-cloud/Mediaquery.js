@@ -64,16 +64,14 @@ gcMediaQuery.isMatch = function(query){
 //检查是否符合出发条件（媒体查询的条件）
 
 gcMediaQuery.getMatch = function(token){
-	var query = null;
-	
-	query = RELATION[token].query;
-
-	//console.log(RELATION[token].tp);
-
-	if(!query) return;
-	gcMediaQuery.allMatchs = {'tp':'','condition':query};
-	if(gcMediaQuery.isMatch(query) && RELATION[token].tp == 'match'){
-		gcMediaQuery.allMatchs = RELATION[token];
+	var i, query = null;
+	for(i in RELATION) {
+		query = RELATION[i].query;
+		if(!query) continue;
+		gcMediaQuery.allMatchs = {'tp':'','condition':query};
+		if(gcMediaQuery.isMatch(query) && RELATION[i].tp == 'match'){
+			gcMediaQuery.allMatchs = RELATION[i];
+		}
 	}
 }
 
@@ -82,18 +80,18 @@ gcMediaQuery.match = function(condition, callback){
 	gcMediaQuery.addEvt('match', condition, callback);
 }
 
-gcMediaQuery.unmatch = function(condition, callback){
-	gcMediaQuery.addEvt('unmatch', condition, callback);
-}
+// gcMediaQuery.unmatch = function(condition, callback){
+// 	gcMediaQuery.addEvt('unmatch', condition, callback);
+// }
 
 //支持多个条件移除同一事件
 gcMediaQuery.offmatch = function(condition, callback){
 	gcMediaQuery.removeEvt('match', condition, callback);
 }
 
-gcMediaQuery.offunmatch = function(condition, callback){
-	gcMediaQuery.removeEvt('unmatch', condition, callback);
-}
+// gcMediaQuery.offunmatch = function(condition, callback){
+// 	gcMediaQuery.removeEvt('unmatch', condition, callback);
+// }
 
 gcMediaQuery.addEvt = function(tp, condition, callback){
 	var token = null;
@@ -125,31 +123,24 @@ gcMediaQuery.removeEvt = function(tp, condition, callback){
 }
 //根据媒体查询条件触发绑定事件
 gcMediaQuery.trigger = function(param){
-
 	var token = null;
 
-	if(param.tp == '' && isresize) {
-		token = escape('unmatch' + param.query).replace(/[%|-]+/g, '');
-	}else{
+	if(param.tp !== '') {
 		token = escape(param.tp + param.query).replace(/[%|-]+/g, '');	
 	}
-	console.log(token)
+
 	if(gcMediaQuery.callbacks[token] && isfun(gcMediaQuery.callbacks[token].callback)){
 		gcMediaQuery.callbacks[token].callback.call(null);
 		return;
 	}
-
 }
 //给window添加事件，获取相关媒体查询信息，触发绑定事件
-function resizeHandle(token){
-	
-	gcMediaQuery.getMatch(token);
+function resizeHandle(){
+	gcMediaQuery.getMatch();
 
-	//console.log(gcMediaQuery.allMatchs)
 	gcMediaQuery.trigger(gcMediaQuery.allMatchs);
-	
 }
-//window.addEventListener('resize', resizeHandle,false);
+window.addEventListener('resize', resizeHandle,false);
 
 
 
