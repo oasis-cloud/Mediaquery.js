@@ -4,7 +4,9 @@ var gcMediaQuery = {},
 	headEle = document.querySelector('head'),
 	styleNode = document.createElement('style'),
 	querys = [],//用于组织没提查询
+	isresize = false,
 	RELATION = {};//条件关系
+
 
 	styleNode.type = 'text/css';
 
@@ -61,18 +63,18 @@ gcMediaQuery.isMatch = function(query){
 }
 //检查是否符合出发条件（媒体查询的条件）
 
-gcMediaQuery.getMatch = function(){
-	var i, len = RELATION.length, query = null;
-	for(i in RELATION){
-		query = RELATION[i].query;
-		if(!query) continue;
-		if(gcMediaQuery.isMatch(query)){
-			gcMediaQuery.allMatchs = RELATION[i];
-		} else {
-			gcMediaQuery.allMatchs = {'tp' : 'unmatch', 'query' : RELATION[i].query};
-		}
+gcMediaQuery.getMatch = function(token){
+	var query = null;
+	
+	query = RELATION[token].query;
+
+	//console.log(RELATION[token].tp);
+
+	if(!query) return;
+	gcMediaQuery.allMatchs = {'tp':'','condition':query};
+	if(gcMediaQuery.isMatch(query) && RELATION[token].tp == 'match'){
+		gcMediaQuery.allMatchs = RELATION[token];
 	}
-	console.log(gcMediaQuery.allMatchs)
 }
 
 //支持多个条件添加同一事件
@@ -106,7 +108,7 @@ gcMediaQuery.addEvt = function(tp, condition, callback){
 	
 	gcMediaQuery.callbacks[token] = {'content' : condition, 'type' : tp, 'callback' : callback};
 	//
-	resizeHandle();
+	resizeHandle(token);
 }
 
 gcMediaQuery.removeEvt = function(tp, condition, callback){
@@ -122,11 +124,16 @@ gcMediaQuery.removeEvt = function(tp, condition, callback){
 			
 }
 //根据媒体查询条件触发绑定事件
-gcMediaQuery.trigger = function(tp, condition){
+gcMediaQuery.trigger = function(param){
 
 	var token = null;
-	token = escape(tp + condition).replace(/[%|-]+/g, '');
-	
+
+	if(param.tp == '' && isresize) {
+		token = escape('unmatch' + param.query).replace(/[%|-]+/g, '');
+	}else{
+		token = escape(param.tp + param.query).replace(/[%|-]+/g, '');	
+	}
+	console.log(token)
 	if(gcMediaQuery.callbacks[token] && isfun(gcMediaQuery.callbacks[token].callback)){
 		gcMediaQuery.callbacks[token].callback.call(null);
 		return;
@@ -134,12 +141,15 @@ gcMediaQuery.trigger = function(tp, condition){
 
 }
 //给window添加事件，获取相关媒体查询信息，触发绑定事件
-function resizeHandle(){
+function resizeHandle(token){
 	
-	gcMediaQuery.getMatch();
-	gcMediaQuery.trigger(gcMediaQuery.allMatchs.tp, gcMediaQuery.allMatchs.query);
+	gcMediaQuery.getMatch(token);
+
+	//console.log(gcMediaQuery.allMatchs)
+	gcMediaQuery.trigger(gcMediaQuery.allMatchs);
+	
 }
-window.addEventListener('resize', resizeHandle,false);
+//window.addEventListener('resize', resizeHandle,false);
 
 
 
