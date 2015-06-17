@@ -4,7 +4,8 @@ var gcMediaQuery = {},
 	headEle = document.querySelector('head'),
 	styleNode = document.createElement('style'),
 	querys = [],
-	beforeQuery = [],
+	RELATION = [],
+	BEFORE = {'tp':'match', 'condition':''};
 
 	styleNode.type = 'text/css';
 
@@ -38,28 +39,38 @@ function removeSingleQuery(condition){
 	}
 }
 
-//检查是否符合出发条件（媒体查询的条件）
-//需要遍历所有的querys，自动找出符合条件的。
-//组织好上次符合条件的记录，为了匹配unmatch事件时使用
-//此方法需要改造。
-function isMatch(query){
-	if(!query) return false;
-	if(window.mediaMatch) {
-		return mediaMatch(query).matchs;
-	}
-	var reg = new RegExp(query);
-	var bodyEle = document.querySelector('body');
-	var currentCondition = window.getComputedStyle(bodyEle, ':before').getPropertyValue('content');
-	return reg.test(currentCondition);
-}
-
-function isfn(param) {
+function isfun(param) {
 	return Object.prototype.toString.call(param) == "[object Function]";
 }
 
-//主对象方法
+//主对象属性初始化
 gcMediaQuery.callbacks = [];
 gcMediaQuery.cblen = 0;
+gcMediaQuery.allMatchs = {'tp':'','condition':''};
+
+
+gcMediaQuery.isMatch = function(query){
+	if(!query) return false;
+	if(window.matchMedia) {
+		return matchMedia(query).matches;
+	}
+	var reg = new RegExp(query);
+	var currentCondition = window.getComputedStyle(bodyEle, ':before').getPropertyValue('content');	
+	return reg.test(currentCondition);
+}
+//检查是否符合出发条件（媒体查询的条件）
+
+gcMediaQuery.getMatch = function(){
+	var i = 0, len = RELATION.length, query = null;
+	for(;i < len; i++){
+		query = RELATION[i].query;
+		if(!query) continue;
+		if(gcMediaQuery.isMatch(query)){
+			gcMediaQuery.allMatchs = RELATION[i];
+		}
+	}
+}
+
 //支持多个条件添加同一事件
 gcMediaQuery.match = function(condition, callback){
 	gcMediaQuery.addEvt('match', condition, callback);
@@ -79,39 +90,56 @@ gcMediaQuery.offunmatch = function(condition, callback){
 }
 
 gcMediaQuery.addEvt = function(tp, condition, callback){
+	var token = null;
+	//保存条件关系
+	RELATION.push({'tp':tp, 'query':condition});
 	//插入样式
-	addStyleElement(condition);
+	if(tp != 'unmatch'){
+		addStyleElement(condition);
+	}
 	//添加到观察者列表中
-	gcMediaQuery.cblen = gcMediaQuery.callbacks.push({'content' : condition, 'type' : tp, 'callback' : callback});
+	token = escape(tp + condition).replace(/[%|-]+/g, '');
+	gcMediaQuery.callbacks[token] = {'content' : condition, 'type' : tp, 'callback' : callback};
+	//
+	resizeHandle();
 }
 
 gcMediaQuery.removeEvt = function(tp, condition, callback){
 	//
-	var temparr = [];
-	for(var i; i < gcMediaQuery.cblen; i++) {
-		if(gcMediaQuery.callbacks[i].content == condition && gcMediaQuery.callbacks[i].type == tp) {
-			//移除不符合的媒体查询
-			removeSingleQuery(condition);
-			continue;
-		}
-		gcMediaQuery.cblen = temparr.push(gcMediaQuery.callbacks[i]);
+	var token = null;
+	token = escape(tp + condition).replace(/[%|-]+/g, '');
+
+	if(gcMediaQuery.callbacks[token].content == condition && gcMediaQuery.callbacks[token].type == tp) {
+		//移除不符合的媒体查询
+		removeSingleQuery(condition);
 	}
+	delete gcMediaQuery.callbacks[token];
+			
 }
 //根据媒体查询条件触发绑定事件
 gcMediaQuery.trigger = function(tp, condition){
-	for(var i; i < gcMediaQuery.cblen; i++) {
-		if(gcMediaQuery.callbacks[i].content == condition && gcMediaQuery.callbacks[i].type == tp && isfn(gcMediaQuery.callbacks[i].callback)) {
-			gcMediaQuery.callbacks[i].callback();
-		}
-	}	
+	console.log("gcMediaQuery.callbacks")
+	console.log(gcMediaQuery.callbacks)
+	console.log('-------------------------------------------')
+	console.log("BEFORE")
+	console.log(BEFORE)
+
+	var token = null;
+	token = escape(tp + condition).replace(/[%|-]+/g, '');
+
+	
+	if(isfun(gcMediaQuery.callbacks[token].callback)){
+		gcMediaQuery.callbacks[token].callback.call(null);
+	}
+
 }
 //给window添加事件，获取相关媒体查询信息，触发绑定事件
-function resizeHandle(evt){
-	isMatch();
-	gcMediaQuery.trigger(tp,condition);
+function resizeHandle(){
+	gcMediaQuery.getMatch();
+	gcMediaQuery.trigger(gcMediaQuery.allMatchs.tp, gcMediaQuery.allMatchs.query);
 }
-window.addEventListener('resize', resizeHandle,false);
-resizeHandle();
+//window.addEventListener('resize', resizeHandle,false);
+
 
 
 
